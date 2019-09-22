@@ -3,11 +3,17 @@ package pierzchala.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRegistration;
 
 @Configuration
 @EnableWebMvc
@@ -29,6 +35,16 @@ public class WebConfig extends WebMvcConfigurerAdapter {
                 new InternalResourceViewResolver();
         resolver.setPrefix("/WEB-INF/views/");
         resolver.setSuffix(".jsp");
+        /**
+         * Aby producent InternalResourceViewResolver zamiast widoków InternalResourceView
+         * produkował widoki JstlView , wystarczy ustawić wartość właściwości viewClass :
+         */
+        resolver.setViewClass(org.springframework.web.servlet.view.JstlView.class);
+        /**
+         * Niezależnie od wybranego sposobu konfiguracji, dzięki powyższym ustawieniom do
+         * znaczników formatowania i komunikatów przekazane zostaną ustawienia Locale i źródła
+         * komunikatów skonfigurowane w Springu.
+         */
         resolver.setExposeContextBeansAsAttributes(true);
         return resolver;
     }
@@ -36,5 +52,16 @@ public class WebConfig extends WebMvcConfigurerAdapter {
     public void configureDefaultServletHandling (
             DefaultServletHandlerConfigurer configurer) {
         configurer.enable();
+    }
+
+    public void onStartup(ServletContext container) throws ServletException {
+        AnnotationConfigWebApplicationContext ctx =
+                new AnnotationConfigWebApplicationContext();
+        ctx.register(WebConfig.class);
+        ctx.setServletContext(container);
+        ServletRegistration.Dynamic servlet =
+                container.addServlet("dispatcher", new DispatcherServlet(ctx));
+        servlet.setLoadOnStartup(1);
+        servlet.addMapping("/");
     }
 }
